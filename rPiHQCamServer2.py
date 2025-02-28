@@ -43,8 +43,6 @@ from _libHQCam2.PiCam2 import PiCam2
 
 
 
-
-
 ### Defaults
 # Paths
 ramdisk        = None                               # Object instance for the used RAM-Disk
@@ -58,9 +56,15 @@ ackStr = "ack"                                      # Standard-Response on succe
 nakStr = "nak"                                      # Standard-Response on failure
 
 # Server settings
-port     = 5060                                     # Socket-Port
-servSock = None                                     # Object instance the socket
-servConn = None                                     # Object instance the client-connection
+port         = 5060                                     # Socket-Port
+servSock     = None                                     # Object instance the socket
+servConn     = None                                     # Object instance the client-connection
+
+# Server-Version in: V<Main>.<Sub1>.<Sub2>.<Sub3>
+servVer_Main = 1
+servVer_Sub1 = 0
+servVer_Sub2 = 0
+servVer_Sub3 = 0
 
 # Camera settings
 # See also into SetupCamera2
@@ -80,8 +84,6 @@ srvr_ShrinkHalfDemosaicedIterations = 0             # 2^x pixels in X and Y are 
 # Logger (can be used optional)
 # logFilePath = "/home/pi/RPiHQCam2.log"
 logger = None                                       # None = No log-file; Str-Path = Log-File is created
-
-
 
 
 
@@ -175,7 +177,13 @@ def ECHO(payloadArr):
 
 
 
+def ServerVersion():
+    """Grabs the Version-String of the Server.
 
+    Returns:
+        str: IDN-String of the PiCam2 instance.
+    """
+    return f"V{servVer_Main}.{servVer_Sub1}.{servVer_Sub2}.{servVer_Sub3}"
 
 
 def Server_ClipWinBayerImage(ClipWinBayerByServer):
@@ -713,6 +721,8 @@ while keepConnection:   # as long the connection is active, iterate infinite
         ####### Server Common Commands #######
         elif cmd == "IDN?":
             reply = IDN()
+        elif cmd == "SRV:VER?":
+            reply = ServerVersion()
         elif cmd == "SRV:ECHO":
             reply = ECHO(payload)
         elif cmd == "SRV:PATH:RDDIR?":

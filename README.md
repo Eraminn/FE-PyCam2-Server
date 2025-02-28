@@ -48,22 +48,26 @@ sudo apt install -y ffmpeg
 4.) Run the script by hand (or start it automatically via a ssh-connection)
 5.) Use your measurement-programm to connect to the server via the pis IP or DNS and port.
 6.) Query commands (Details in the code-documentation of the functions):
-- CAM:CONF:SS       Adjusts the ShutterSpeed/Exposuretime
-- CAM:CONF:FR       Adjusts the FrameRate
-- CAM:CONF:AG       Adjusts the AnalogGain
-- CAM:CONF:AWB      Adjusts the AutoWhiteBalance
-- CAM:CONF:SCLCRP   ScalerCrop-functionality not used, because done by SRV:BCLP
-- CAP:SEQFET        FETches a SEQuence of images; Timeout not used at the moment
-- SRV:ARCHV         Archvies the given folder to a tar or tar.gz
-- SRV:IMG:BCLP      Sets the image size. Clipping is done in bayer-space directly after receiving from camera.
-- SRV:IMG:DBAY      (Post-processing) Sets if the pi is debayering the images before saving
-- SRV:IMG:SHRNK     (Post-processing) Sets the pi to do pixel-binning
-- IDN?              Grabs information from the pi (can be used for connection test)
-- SRV:ECHO          Echoes the given message (an be used for connection test)
-- SRV:PATH:RDDIR?   Returns the path where the RamDisk is mounted.
-- SRV:PATH:SDDIR?   Returns the path where SD-Card images captured (is just a shortcut, which is changed by hand in script-code (imFolderPath))
-- SRV:PATH:IMDIR?   Returns the path where the images stored.
-- SRV:CLOSE         Closes the connection and shuts down the pycam-server (not the pi)
+
+| Command          | Explanation                                                                                                                        |
+|------------------|------------------------------------------------------------------------------------------------------------------------------------|
+|CAM:CONF:SS       | Adjusts the ShutterSpeed/Exposuretime                                                                                              |
+|CAM:CONF:FR       | Adjusts the FrameRate                                                                                                              |
+|CAM:CONF:AG       | Adjusts the AnalogGain                                                                                                             |
+|CAM:CONF:AWB      | Adjusts the AutoWhiteBalance                                                                                                       |
+|CAM:CONF:SCLCRP   | ScalerCrop-functionality not used, because done by SRV:BCLP                                                                        |
+|CAP:SEQFET        | FETches a SEQuence of images; Timeout not used at the moment                                                                       |
+|SRV:ARCHV         | Archvies the given folder to a tar or tar.gz                                                                                       |
+|SRV:IMG:BCLP      | Sets the image size. Clipping is done in bayer-space directly after receiving from camera.                                         |
+|SRV:IMG:DBAY      | (Post-processing) Sets if the pi is debayering the images before saving                                                            |
+|SRV:IMG:SHRNK     | (Post-processing) Sets the pi to do pixel-binning                                                                                  |
+|IDN?              | Grabs information from the pi (can be used for connection test)                                                                    |
+|SRV:VER?          | Returns the server-version.                                                                                                        |
+|SRV:ECHO          | Echoes the given message (an be used for connection test)                                                                          |
+|SRV:PATH:RDDIR?   | Returns the path where the RamDisk is mounted.                                                                                     |
+|SRV:PATH:SDDIR?   | Returns the path where SD-Card images captured (is just a shortcut, which is changed by hand in script-code (imFolderPath))        |
+|SRV:PATH:IMDIR?   | Returns the path where the images stored.                                                                                          |
+|SRV:CLOSE         | Closes the connection and shuts down the pycam-server (not the pi)                                                                 |
 
 7.) Images can be downloaded via a SCP-connection from your measurement-program asynchrone from the pi.
     This is also hardly recommended, as the images can become huge and cause may an out of RAM/Diskspace exception which crashes the script.
