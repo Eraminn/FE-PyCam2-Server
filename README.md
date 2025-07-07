@@ -2,32 +2,36 @@
 
 That projects represents a python-netsocket (server) to manage a Raspberry Pi HQ-Camera based on libcamera (picamera2) as scientific imaging sensor for the measurement of field emission electron sources.
 
+Note: Depending on your settings and setup, it is recommended (for security reasons) to run the server only in your local network after the pi is set up.
+
 
 # Setup
 ## Hardware
 The scripts are developed and tested on a Raspberry Pi 4 Model B (8GB).
+The following setup assumes you have access to the internet with the pi (during the setup), e.g. using a USB-Ethernet adapter with forwarded internet connection.
 
 ## Underlaying system and libraries
 1.) Operating System
 
-Install Raspbian OS 11 x64 (no desktop) or higher on a SD-Card. You can use the [Raspberry Pi Imager][rPiImager] (easiest way) or download the [sd-card-image][rPiOS] and use your favourite disk-imager software.
+Install Raspbian OS 11 x64 Lite (Debian Bullseye, no desktop) or higher on a SD-Card. Newer versions (Rasperry Pi OS 12, Debian Bookworm) in principle works, but is not fully tested yet. For deployment, you can use the [Raspberry Pi Imager][rPiImager] (easiest way) or download the [sd-card-image][rPiOS] and use your favourite disk-imager software.
 
 
-2.) Picamera2
+2.) Picamera2 (python library for libcamera)
 
 As we are using the system headless, the GUI-package installations are skipped.
 
-You can install it directly via apt or also pip. When using pip, some dependencies need to be installed first:
+First, install the necessary dependencies by running the following lines in the shell:
 ```
 sudo apt install -y python3-libcamera python3-kms++
 sudo apt install -y python3-prctl libatlas-base-dev ffmpeg python3-pip
-pip3 install numpy --upgrade (on Pi5 try ``sudo apt install python3-numpy``)
+pip3 install numpy --upgrade (on bookworm you may need to run ``sudo apt install python3-numpy`` for global installation)
 ```
+
 Afterwards you can run
-```sudo apt install -y python3-picamera2``` (apt-install)
-or
 ```pip3 install picamera2``` (pip)
-to install the python-class for libcamera.
+or
+```sudo apt install -y python3-picamera2``` (apt-install)
+to install the python-library for libcamera.
 
 
 3.) Additional Software
@@ -42,15 +46,26 @@ sudo apt install -y ffmpeg
 
 
 ## Get PyCam2 to work
-1.) Disable legacy camera stack by running ```sudo raspi-config```, enter ```interface options``` and make sure, that the ```legacy camera stack``` is disabled.
-2.) Clone the repository content directly in to the pis home-folder (rPiHQCamServer2.py in /home/pi)
+1.) Disable legacy camera stack by running ```sudo raspi-config```, enter ```interface options``` and make sure, that the ```legacy camera stack``` is ```disabled```.
+
+2.) Make sure, git is installed by running ```sudo apt install git```.
+
+3.) Use git to clone the repository content directly in to the pis home-folder (rPiHQCamServer2.py in /home/pi) by running
+```bash
+cd ~
+git https://github.com/Dephrilibrium/FE-PyCam2-Server.git ./
+```
+
 3.) You can adjust some startup-options by opening and modify the rPiHQCamServer2.py, e.g.: ```srvr_ClipWinBayer```: Adjusts the image size in bayer-space before any post-processing or saving.
-4.) Run the script by hand (or start it automatically via a ssh-connection)
-5.) Use your measurement-programm to connect to the server via the pis IP or DNS and port.
+
+4.) Run the script by hand (or start it automatically via a ssh-connection remote controlled) and connect with your measurement-programm to the server via the RasPis IP or DNS and port (default: ```5060```).
+
 6.) Query commands (Details in the code-documentation of the functions):
+
 | Command           | Description                                                                                                                 |
 |:------------------|:----------------------------------------------------------------------------------------------------------------------------|
-| CAM:CONF:SS       | Adjusts the ShutterSpeed/Exposuretime                                                                                       |
+| CAM:CONF:ET       | Adjusts the Exposuretime                                                                                                    |
+| CAM:CONF:SS       | Adjusts the ShutterSpeed. (Legacy-Support of CAM:CONF:ET)                                                                  |
 | CAM:CONF:FR       | Adjusts the FrameRate                                                                                                       |
 | CAM:CONF:AG       | Adjusts the AnalogGain                                                                                                      |
 | CAM:CONF:AWB      | Adjusts the AutoWhiteBalance                                                                                                |
@@ -76,7 +91,7 @@ sudo apt install -y ffmpeg
 
 
 
-Written by haum
+2025 © haum
 
 
 

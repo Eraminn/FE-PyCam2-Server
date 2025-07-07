@@ -45,6 +45,7 @@ class PiCam2:
                                                                          },
                                                              controls={"AnalogueGain":      1.0,
                                                                      "FrameDurationLimits": (_fd, _fd),
+                                                                    #  "FrameDurationLimits": (_fd-10000, _fd+10000),
                                                                      }
                                                             ) 
         LogLineLeftRight("Created preview-configuration:", "ok")
@@ -58,7 +59,13 @@ class PiCam2:
         # Test from controls_3.py
         # self.__ctrls__ = Controls(self.__cam2__)
         self.__cam2__.set_controls({
-            "AeEnable"            : True            ,       # Allow AutoAdjustment of ExposureTime and AGain
+            ##############
+            # NOTE!!!
+            # AeEnable 
+            # You may see the warning: "WARN IPARPI ipa_base.cpp:1392 Ctrl AeEnable is not handled." from libcamera-stack
+            # It seems that this has something to do with the way AE (auto Gain/Exposure) is handled and interconnected with IPA
+            # It should has no influence on fixed set gain/expTime
+           "AeEnable"            : False            ,      # Disable AutoAdjustment of ExposureTime and AGain
                                                             #  (see customized "shutter" and "gain" values above for "normal" mode, which is default)
             # "AwbEnable"         : 0               ,       # AWB off
             # "ColourGains"       : (1.0,1.0)       ,       # Additionally fix AWB-gains to 1 for (red, blue)
@@ -66,7 +73,7 @@ class PiCam2:
             "AnalogueGain"        : 1.0             ,       # No Amplification
             # "Brightness"        : 0.0             ,       # No relative brightness
             # "Contrast"          : 1.0             ,       # "Normal" contrast
-            "ExposureTime"        : 0               ,       # SS = Auto-SS by default
+            "ExposureTime"        : 100000          ,       # ET = 100ms by default
             # "Saturation"        : 0               ,       # Avoid extra saturation
             # "NoiseReductionMode": 0               ,       # No noise-reduction algorithm
             # "Sharpness"         : 0               ,       # Avoid sharpening
@@ -234,7 +241,11 @@ class PiCam2:
 
     def __SetFD__(self, fd:int):
         fd = int(fd)
+        _fdLower = fd * 0.99    # -1% Frameduration as Lower-Timeout-Limit
+        _fdUpper = fd * 1.01    # +1% Frameduration as Upper-Timeout-Limit
         self._pConf2['controls']['FrameDurationLimits'] = (fd, fd)
+        # self._pConf2['controls']['FrameDurationLimits'] = (_fdLower, _fdUpper)
+        # self._pConf2['controls']['FrameDurationLimits'] = (fd, fd*1.02) # Testlimits because of "dequeue timer of XYZ µs has expired" Fehler!
         self.__cam2__.configure(self._pConf2)
         return 0
 

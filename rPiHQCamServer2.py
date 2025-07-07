@@ -1,24 +1,7 @@
 ##################################################################################
 # PyCam2-Server for capturing images as RAW images.
 #                                                                                #
-# How to use (variable explanation):                                             #
-# xCmd:             Path to the 7-zip executable.                                #
-# parentDir:        Folder which is scanned recursevly for measurement-files.    #
-# picDir:           Foldername of the subdir where the images for the data-      #
-#                    extraction are stored (mean-images of                       #
-#                    _ConvertBayerToGrayScale.py)                                #
-# saveDir:          The second argument of the replace-function determines the   #
-#                    folder in which the extraction results are stored.          #
-#                    This can be used to separate source and destination folder. #
-# opt:              Is an instance of the PiMagePro options. This class has a    #
-#                    built in store-function to have the used extraction-option  #
-#                    as file on disk (see options below).                        #
-# LogFilePath:      If a filename is given, a logger-instance is created which   #
-#                    print the console messages to console as wall as to a file. #
-# LogLen:           Defines the length of a log-line (so that all logs have the  #
-#                    same length).                                               #
-#                                                                                #
-# 2023 © haum (OTH-Regensburg)                                                   #
+# 2025 © haum (OTH-Regensburg)                                                   #
 ##################################################################################
 
 # Imports
@@ -45,29 +28,44 @@ from _libHQCam2.PiCam2 import PiCam2
 
 
 
-### Defaults
+### Defaults (static configurations and internal store-variables)
 # Paths
-ramdisk        = None                               # Object instance for the used RAM-Disk
-mntPnt_RAMDisk = r"/media/ramdisk"                  # Mounting Point of the ramdisk; Comment out to avoid a RAMDISK
+ramdisk        = None                               # \ Stores the created RAM-Disk instance
+                                                    # / !!!DO NOT CHANGE!!!
+
+mntPnt_RAMDisk = r"/media/ramdisk"                  # Mounting Point of the ramdisk; Comment out to avoid a RAMDISK.
 SDCardPath     = r"/home/pi/Pictures/Captures"      # Path if no RAM-Disk is used
 
-imFolderPath = join(mntPnt_RAMDisk, "Captures")     # Path to image folder
+imFolderPath = join(mntPnt_RAMDisk, "Captures")     # \ Path to image folder.
+                                                    # / Use "mntPnt_RAMDisk" or "SDCardPath" as needed.
 
 # Static responses
-ackStr = "ack"                                      # Standard-Response on success
-nakStr = "nak"                                      # Standard-Response on failure
+ackStr = "ack"                                      # \ Standard-Response on success
+nakStr = "nak"                                      # | Standard-Response on failure
+                                                    # / Can be adjusted as needed
 
 # Server settings
-port     = 5060                                     # Socket-Port
-servSock = None                                     # Object instance the socket
-servConn = None                                     # Object instance the client-connection
+port     = 5060                                     # \ Socket-Port
+                                                    # / Can be changed as needed.
+
+servSock = None                                     # \ Stores the stream-socket instance
+servConn = None                                     # | Stores the client-connection
+                                                    # / !!!DO NOT CHANGE!!!
+
+
+# Logger (can be used optional)
+# logFilePath = "/home/pi/RPiHQCam2.log"            # Commented out = No log-file; Path (string) = Log-File is created
+logger = None                                       # \ Stores the logger instance
+                                                    # / !!!DO NOT CHANGE!!!
+
 
 # Camera settings
-# See also into SetupCamera2
-cam = None                                          # Object instance of PiCam2
+# Checkout "SetupCamera2"
+cam = None                                          # \ Stores the PiCam2 instance
+                                                    # / !!!DO NOT CHANGE!!!
 
 
-# Server settings
+# Server settings (Defaults of adjustable by commands)
 srvr_ClipWinBayer = [4056,3040]                     # Default Clip-Window:
                                                     #  - [width, height]            : Imagewidth and -height around the center
                                                     #  - [X1, Y1, width, height]    : Imagewidth and -height starting on the left upper corner (X1, Y1)
@@ -75,15 +73,6 @@ srvr_ClipWinBayer = [4056,3040]                     # Default Clip-Window:
                                                     #  Odd numbers lead to half-indicies (*.5) which are not exist!
 srvr_DemosaicClippedBayerImgs = False               # True: Server saves demosaicked images; False: Server saves RAW Bayer images
 srvr_ShrinkHalfDemosaicedIterations = 0             # 2^x pixels in X and Y are combined to one value (artificial pixel-binning)
-
-
-# Logger (can be used optional)
-# logFilePath = "/home/pi/RPiHQCam2.log"
-logger = None                                       # None = No log-file; Str-Path = Log-File is created
-
-
-
-
 
 
 
@@ -626,7 +615,7 @@ def CaptureShutterspeedSequence(Prefix:str, StorePath:str, SS:str="1000:3150:100
 
 
 
-### Start script ###
+### Start script ###zth
 # Init logger if wanted
 if "logFilePath" in locals():
     logger = StdOutLogger(logFilePath)
@@ -646,6 +635,12 @@ if "mntPnt_RAMDisk" in locals() and mntPnt_RAMDisk != None:
 
 # Create Camera
 SetupCamera2(10.0)
+# cam.SetFR(10)
+# FD10 = cam.GetFD()
+# cam.SetFR(5)
+# FD5 = cam.GetFD()
+# cam.SetFR(1)
+# FD1 = cam.GetFD()
 
 # ConfShutterspeed(0)
 # for _i in range(100):
@@ -691,7 +686,7 @@ while keepConnection:   # as long the connection is active, iterate infinite
             reply = Server_Archive(archiveFolderPath=payload[0], archiveFName=payload[1], compress=DecodeBoolStr(payload[2]), multicore=DecodeBoolStr(payload[3]), suppressParents=DecodeBoolStr(payload[4]))
 
         ####### Camera Conf #######
-        elif cmd == "CAM:CONF:SS":                                          # ShutterSpeed (SS)
+        elif cmd in ("CAM:CONF:ET", "CAM:CONF:SS"):                         # Exposure Time (ET) / ShutterSpeed (SS); SS = Legacy
             reply = ConfShutterspeed(payload[0])[0] # Only get Ack-String (index: 0)
         elif cmd == "CAM:CONF:FR":                                          # FrameRate (FR)
             reply = ConfFramerate(payload[0])
