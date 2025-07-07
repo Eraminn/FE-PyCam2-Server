@@ -4,8 +4,8 @@ from picamera2.controls import Controls
 from _libHQCam2.Logger import LogLineLeft, LogLineLeftRight
 
 
-class PiCam2:
-    __IDN__ = "PiCam2"
+class PyCam2:
+    __IDN__ = "PyCam2"
     __cam2__ = None
 
     def __init__(self, fr:float=10.0, awaitWarmup:float=1.0):

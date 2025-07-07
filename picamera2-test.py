@@ -105,25 +105,25 @@ gamma["gamma_curve"] =  [           # Linear Gamma-Curve
                 ]
 
 
-picam2 = Picamera2(tuning=camTune)
-picam2.start_preview(Preview.NULL)
+PyCam2 = Picamera2(tuning=camTune)
+PyCam2.start_preview(Preview.NULL)
 
-preview_config = picam2.create_preview_configuration(raw={"size": picam2.sensor_resolution})
+preview_config = PyCam2.create_preview_configuration(raw={"size": PyCam2.sensor_resolution})
 # print(preview_config)
-picam2.configure(preview_config)
+PyCam2.configure(preview_config)
 
 
-picam2.start()
+PyCam2.start()
 time.sleep(1)
 
 
-metadata = picam2.capture_metadata()
+metadata = PyCam2.capture_metadata()
 controls = {c: metadata[c] for c in ["ExposureTime", "AnalogueGain", "ColourGains"]}
 controls["AnalogueGain"]   = 1.0
 # controls["DigitalGain"]    = 1.0
 controls["ColourGains"] = (1.0, 1.0)
 # print(controls)
-picam2.set_controls(controls)
+PyCam2.set_controls(controls)
 
 controlSS = {c: metadata[c] for c in ["ExposureTime"]}
 SS = [
@@ -198,8 +198,8 @@ SS = [
 startPresetSS = time.time()
 _ss = SS[0]
 controlSS["ExposureTime"] = _ss
-picam2.set_controls(controlSS)
-_ssI, to = AwaitInRange(pcam=picam2, targetValue=_ss, LoDeviation=0.85, HiDeviation=1.15)
+PyCam2.set_controls(controlSS)
+_ssI, to = AwaitInRange(pcam=PyCam2, targetValue=_ss, LoDeviation=0.85, HiDeviation=1.15)
 durationPresetSS = time.time() - startPresetSS
 print(str.format("Preset SS: {:.3f} - {}/{}", durationPresetSS, _ssI, _ss))
 
@@ -240,8 +240,8 @@ for _iSS in range(len(SS)):
 
     startSetSS = time.time()
     controlSS["ExposureTime"] = _ss
-    picam2.set_controls(controlSS)
-    _ssI, to = AwaitInRange(pcam=picam2, targetValue=_ss, LoDeviation=0.95, HiDeviation=1.05)
+    PyCam2.set_controls(controlSS)
+    _ssI, to = AwaitInRange(pcam=PyCam2, targetValue=_ss, LoDeviation=0.95, HiDeviation=1.05)
     durationSetSS = time.time() - startSetSS
     print(str.format("Setting SS: {:.3f} ({}/{}) - Timeout: {}", durationSetSS, _ssI, _ss, to))
 
@@ -251,9 +251,9 @@ for _iSS in range(len(SS)):
         # print("Capturing: " + fNames[_iSS])
         print("Capturing: " + savName)
         startCap = time.time()
-        # metadata = picam2.capture_metadata()
-        metadata = picam2.capture_metadata()
-        raw = picam2.capture_array("raw")
+        # metadata = PyCam2.capture_metadata()
+        metadata = PyCam2.capture_metadata()
+        raw = PyCam2.capture_array("raw")
         raw = raw[cy1:cy2, cx1:cx2]
         durationCap = time.time() - startCap
         print(str.format("Capture took:  {}s", durationCap))

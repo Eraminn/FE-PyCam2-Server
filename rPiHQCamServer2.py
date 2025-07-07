@@ -22,7 +22,7 @@ from _libHQCam2.misc import duration, how_long, DecodeBoolStr
 from _libHQCam2.Logger import StdOutLogger, LogLineLeft, LogLineLeftRight
 
 from picamera2.controls import Controls
-from _libHQCam2.PiCam2 import PiCam2
+from _libHQCam2.PyCam2 import PyCam2
 
 
 
@@ -61,7 +61,7 @@ logger = None                                       # \ Stores the logger instan
 
 # Camera settings
 # Checkout "SetupCamera2"
-cam = None                                          # \ Stores the PiCam2 instance
+cam = None                                          # \ Stores the PyCam instance
                                                     # / !!!DO NOT CHANGE!!!
 
 
@@ -118,19 +118,19 @@ def AwaitIncomingConnection(socket:socket):
 
 
 def SetupCamera2(fr=10.0):
-    """Sets up the PiCam2 object instance.
+    """Sets up the PyCam object instance.
     !!! Note: It directly writes the instance to the global cam-variable !!!
 
     Args:
         fr (float, optional): FrameRate in Frames Per Second (FPS). Defaults to 10.0.
 
     Returns:
-        PiCam2: Camera object instance.
+        PyCam: Camera object instance.
     """
     global cam
 
-    # Init PiCam2
-    cam = PiCam2(fr=fr)
+    # Init PyCam
+    cam = PyCam2(fr=fr)
     LogLineLeftRight("Reading IDN:", cam.IDN())
     return
 
@@ -142,7 +142,7 @@ def IDN():
     """Grabs the ID-String of the camera-object.
 
     Returns:
-        str: IDN-String of the PiCam2 instance.
+        str: IDN-String of the PyCam instance.
     """
     return cam.IDN()
 

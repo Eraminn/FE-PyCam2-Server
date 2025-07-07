@@ -48,17 +48,23 @@ sudo apt install -y ffmpeg
 ## Get PyCam2 to work
 1.) Disable legacy camera stack by running ```sudo raspi-config```, enter ```interface options``` and make sure, that the ```legacy camera stack``` is ```disabled```.
 
-2.) Make sure, git is installed by running ```sudo apt install git```.
+2.) Make sure, git is installed by running ```sudo apt install git -y```.
 
-3.) Use git to clone the repository content directly in to the pis home-folder (rPiHQCamServer2.py in /home/pi) by running
+3.) Clone the repository content directly in to the pis home-folder (rPiHQCamServer2.py in /home/pi) by running
 ```bash
 cd ~
-git https://github.com/Dephrilibrium/FE-PyCam2-Server.git ./
+git clone https://github.com/Dephrilibrium/FE-PyCam2-Server.git
+mv FE-PyCam2-Server/* FE-PyCam2-Server/.??* .
+rmdir FE-PyCam2-Server/
 ```
 
-3.) You can adjust some startup-options by opening and modify the rPiHQCamServer2.py, e.g.: ```srvr_ClipWinBayer```: Adjusts the image size in bayer-space before any post-processing or saving.
+You should now be able to create gray test-images by running:
+```./Pictures/stdShot2.sh <Testimage-Filename: String> <AnalogueGain: 1.0-8.0> <ExposureTime_us: 100-100000>```
+If you are using VS-Code for the remote-connection, you can use the file-explorer to directly have a look on the image which is stored in your current ```pwd```.
 
-4.) Run the script by hand (or start it automatically via a ssh-connection remote controlled) and connect with your measurement-programm to the server via the RasPis IP or DNS and port (default: ```5060```).
+4.) You can adjust some startup-options by opening and modify the rPiHQCamServer2.py, e.g.: ```srvr_ClipWinBayer```: Adjusts the image size in bayer-space before any post-processing or saving.
+
+5.) Run the script by hand (or start it automatically via a ssh-connection remote controlled) and connect with your measurement-programm to the server via the RasPis IP or DNS and port (default: ```5060```).
 
 6.) Query commands (Details in the code-documentation of the functions):
 
