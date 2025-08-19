@@ -33,7 +33,7 @@ _Old PiCam1 Stuff
 .vscode-server
 
 # Files
-.mv2Samba.sh
+mv2Samba.sh
 .bash_history
 .bash_logout
 .profile

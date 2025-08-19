@@ -43,6 +43,12 @@ imFolderPath = join(mntPnt_RAMDisk, "Captures")     # \ Path to image folder.
 ackStr = "ack"                                      # \ Standard-Response on success
 nakStr = "nak"                                      # | Standard-Response on failure
                                                     # / Can be adjusted as needed
+__IDN__ = "PyCam2"
+__Version_Major__ = 1
+__Version_Minor__ = 0
+__Version_Sub1__ = 0
+__Version_Sub2__ = 0
+
 
 # Server settings
 port     = 5060                                     # \ Socket-Port
@@ -130,8 +136,8 @@ def SetupCamera2(fr=10.0):
     global cam
 
     # Init PyCam
-    cam = PyCam2(fr=fr)
-    LogLineLeftRight("Reading IDN:", cam.IDN())
+    # cam = PyCam2(fr=fr)
+    LogLineLeftRight("Reading IDN:", IDN())
     return
 
 
@@ -144,7 +150,7 @@ def IDN():
     Returns:
         str: IDN-String of the PyCam instance.
     """
-    return cam.IDN()
+    return f"{__IDN__}, V{__Version_Major__}.{__Version_Minor__}.{__Version_Sub1__}.{__Version_Sub2__}"
 
 
 
@@ -166,7 +172,7 @@ def ECHO(payloadArr):
 
 
 
-
+# Add a function "ClipWinImage" some day to avoid the "confusing" coordinate-change of x-avlues by x1.5 which comes from bayer-encoded data!
 def Server_ClipWinBayerImage(ClipWinBayerByServer):
     """Adjusts the clip-windows for pre-clipping.
 
@@ -181,7 +187,7 @@ def Server_ClipWinBayerImage(ClipWinBayerByServer):
     clpWin = [int(val) for val in ClipWinBayerByServer.split(":")]
     nVals = len(clpWin)
     if nVals == 2 or nVals == 4:
-        for iVal in range(nVals):
+        for iVal in range(nVals): 
             oldVal = clpWin[iVal]
             clpWin[iVal] = clpWin[iVal] - (clpWin[iVal] % 2)
             if oldVal != clpWin[iVal]: # Value was corrected
@@ -456,16 +462,16 @@ def ConfFramerate(FR="10.0"):
 
 
 
-def CaptureShutterspeedSequence(Prefix:str, StorePath:str, SS:str="1000:3150:10000:31500", nPics:str="3", tMax:str="3.0", SaveSSLog:str="True"):
+def CaptureShutterspeedSequence(Prefix:str, StorePath:str, ETs:str="1000:3150:10000:31500", nPics:str="3", tMax:str="3.0", SaveETLog:str="True"):
     """Captures a sequence of raw images and stores them on (ram)disk.
 
     Args:
         Prefix (str): Image-prefix.
         StorePath (_type_): Path where the images are stored.
-        SS (str, optional): A set of shutterspeeds separated by ":". Defaults to "1000:3150:10000:31500".
+        SS (str, optional): A set of exposure times separated by ":". Defaults to "1000:3150:10000:31500".
         nPics (int, optional): Number of images per SS. Defaults to 3.
         tMax (float, optional): Maximum time before a warning is generated (not implemented yet!). Defaults to 3.0.
-        SaveSSLog (bool, optional): Append a shutterspeed-log into the image folder. Defaults to True.
+        SaveSSLog (bool, optional): Append a exposuretime-log into the image folder. Defaults to True.
 
     Raises:
         Exception: When no store-path is given, an exception is thrown.
@@ -475,14 +481,14 @@ def CaptureShutterspeedSequence(Prefix:str, StorePath:str, SS:str="1000:3150:100
     """
     global cam, srvr_ClipWinBayer # Used for presetting SS
 
-    SS = [int(_ss) for _ss in SS.split(":")]    # ShutterSpeeds -> int
+    ETs = [int(_ss) for _ss in ETs.split(":")]    # ShutterSpeeds -> int
     nPics = int(nPics)                          # nPics -> int
     tMax = float(tMax)                          # TimeMax (interval) -> float
-    SaveSSLog = DecodeBoolStr(SaveSSLog)                 # SaveSSLog (True/False, 1/0, yes/no) -> bool
+    SaveETLog = DecodeBoolStr(SaveETLog)                 # SaveSSLog (True/False, 1/0, yes/no) -> bool
     if StorePath == None or StorePath == "":
         raise Exception("CaptureSequence() - No storage-path given.")
 
-    if SaveSSLog:
+    if SaveETLog:
         ssLogStr = ""
 
     ####### Calculate crop-coordinates #######
@@ -513,9 +519,9 @@ def CaptureShutterspeedSequence(Prefix:str, StorePath:str, SS:str="1000:3150:100
 
     ####### Take the pictures #######
     sSeq = time()
-    cntSS = len(SS)
+    cntSS = len(ETs)
     for _iSS in range(cntSS):
-        _tSS = SS[_iSS] # Grab ss directly from list
+        _tSS = ETs[_iSS] # Grab ss directly from list
 
         _ack, _cSS, _TO = ConfShutterspeed(_tSS)
 
@@ -529,7 +535,7 @@ def CaptureShutterspeedSequence(Prefix:str, StorePath:str, SS:str="1000:3150:100
 
         ### Raw-capture the images into a list ###
         raws = []
-        if SaveSSLog:
+        if SaveETLog:
             rawMetas = []
         dCaps = []
         sCapAll = time()
@@ -537,7 +543,7 @@ def CaptureShutterspeedSequence(Prefix:str, StorePath:str, SS:str="1000:3150:100
             sCap = time()
             raw, meta = cam.GetCamera().capture_arrays(["raw"])
             raws.append(raw[0])
-            if SaveSSLog:
+            if SaveETLog:
                 rawMetas.append(meta)
             dCaps.append(duration(sCap))
             if _tSS > 0:
@@ -550,8 +556,8 @@ def CaptureShutterspeedSequence(Prefix:str, StorePath:str, SS:str="1000:3150:100
 
         ### Preset to next SS, so that the camera settles during the following code runs ###
         if _iSS < (cntSS-1): # Preset only, if not already the last SS -> set back to SS[0] at the end of this method
-            LogLineLeftRight(f"Presetting SS={SS[_iSS + 1]}:", "ok")
-            cam.SetSS(SS[_iSS + 1])
+            LogLineLeftRight(f"Presetting SS={ETs[_iSS + 1]}:", "ok")
+            cam.SetSS(ETs[_iSS + 1])
 
 
         ### Do post-processing to the images ###
@@ -596,17 +602,17 @@ def CaptureShutterspeedSequence(Prefix:str, StorePath:str, SS:str="1000:3150:100
             dSav = duration(sSav)
             print(f"Saving {fName} took {dSav:.3f}")
 
-            if SaveSSLog:
+            if SaveETLog:
                 _cSS  = rawMetas[_iPic]["ExposureTime"]
                 _fd   = rawMetas[_iPic]["FrameDuration"]
                 _dCap = dCaps[_iPic]
                 ssLogStr += str.format("fName:{};tCap:{:.3f};tSav{:.3f};sSS:{};iSS:{};FD:{}\n", fName, _dCap, dSav, _tSS, _cSS, _fd)
     how_long(sSeq, "Entire CaptureShutterspeedSequence")
 
-    LogLineLeftRight(f"Presetting SS={SS[0]}:", "ok")
-    cam.SetSS(SS[0]) # Preset the fastest SS for next call
+    LogLineLeftRight(f"Presetting SS={ETs[0]}:", "ok")
+    cam.SetSS(ETs[0]) # Preset the fastest SS for next call
     # Save the SS-Log
-    if SaveSSLog:
+    if SaveETLog:
         f = open(join(StorePath, f"{Prefix}_SSCapture.log"), "w")
         f.writelines(ssLogStr)
         f.close()
@@ -681,7 +687,7 @@ while keepConnection:   # as long the connection is active, iterate infinite
         ####### Capture (most used) #######
         # print(cmd)
         if cmd == 'CAP:SEQFET':
-            reply = CaptureShutterspeedSequence(Prefix=payload[0], StorePath=imFolderPath, SS=payload[1], nPics=payload[2], tMax=payload[3], SaveSSLog=payload[4])
+            reply = CaptureShutterspeedSequence(Prefix=payload[0], StorePath=imFolderPath, ETs=payload[1], nPics=payload[2], tMax=payload[3], SaveETLog=payload[4])
         elif cmd == "SRV:ARCHV":
             reply = Server_Archive(archiveFolderPath=payload[0], archiveFName=payload[1], compress=DecodeBoolStr(payload[2]), multicore=DecodeBoolStr(payload[3]), suppressParents=DecodeBoolStr(payload[4]))
 

@@ -5,7 +5,6 @@ from _libHQCam2.Logger import LogLineLeft, LogLineLeftRight
 
 
 class PyCam2:
-    __IDN__ = "PyCam2"
     __cam2__ = None
 
     def __init__(self, fr:float=10.0, awaitWarmup:float=1.0):
@@ -166,10 +165,6 @@ class PyCam2:
         _agc["constraint_modes"]["highlight"] = _constraints.copy()
         _agc["constraint_modes"]["shadows"]   = _constraints.copy()
         return tune
-
-
-    def IDN(self):
-        return self.__IDN__
 
 
     def CaptureMeta(self):
