@@ -136,7 +136,7 @@ def SetupCamera2(fr=10.0):
     global cam
 
     # Init PyCam
-    # cam = PyCam2(fr=fr)
+    cam = PyCam2(fr=fr)
     LogLineLeftRight("Reading IDN:", IDN())
     return
 
