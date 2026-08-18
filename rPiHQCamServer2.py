@@ -21,8 +21,12 @@ from _libHQCam2.ramdisk import RAMDisk, CreateFolder4User
 from _libHQCam2.misc import duration, how_long, DecodeBoolStr
 from _libHQCam2.Logger import StdOutLogger, LogLineLeft, LogLineLeftRight
 
-from picamera2.controls import Controls
-from _libHQCam2.PyCam2 import PyCam2
+try:
+    from picamera2.controls import Controls
+except Exception:  # pragma: no cover - optional for Basler-only setups
+    Controls = None
+
+from _libHQCam2.camera_factory import create_camera_backend
 
 
 
@@ -124,19 +128,20 @@ def AwaitIncomingConnection(socket:socket):
 
 
 def SetupCamera2(fr=10.0):
-    """Sets up the PyCam object instance.
+    """Sets up the active camera backend.
     !!! Note: It directly writes the instance to the global cam-variable !!!
 
     Args:
         fr (float, optional): FrameRate in Frames Per Second (FPS). Defaults to 10.0.
 
     Returns:
-        PyCam: Camera object instance.
+        CameraBackend: Active camera object instance.
     """
     global cam
 
-    # Init PyCam
-    cam = PyCam2(fr=fr)
+    # Auto-select the camera backend depending on what is physically connected.
+    cam = create_camera_backend(fr=fr)
+    LogLineLeftRight("Detected camera backend:", getattr(cam, "camera_name", "unknown"))
     LogLineLeftRight("Reading IDN:", IDN())
     return
 
@@ -145,12 +150,13 @@ def SetupCamera2(fr=10.0):
 
 
 def IDN():
-    """Grabs the ID-String of the camera-object.
+    """Grabs the ID-String of the active camera-object.
 
     Returns:
-        str: IDN-String of the PyCam instance.
+        str: IDN-String of the active camera instance.
     """
-    return f"{__IDN__}, V{__Version_Major__}.{__Version_Minor__}.{__Version_Sub1__}.{__Version_Sub2__}"
+    camera_name = getattr(cam, "camera_name", __IDN__)
+    return f"{camera_name}, V{__Version_Major__}.{__Version_Minor__}.{__Version_Sub1__}.{__Version_Sub2__}"
 
 
 
