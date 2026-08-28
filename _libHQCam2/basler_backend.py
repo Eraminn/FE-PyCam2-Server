@@ -29,6 +29,8 @@ class BaslerCameraBackend(CameraBackend):
             raise RuntimeError("pypylon is not installed. Install Basler's python package first.")
 
         self._camera = None
+        self._bayer_pattern = "RG"
+        self._pixel_format = "BayerRG12"
         self._initialize_camera(fr)
 
     def _initialize_camera(self, fr:float):
@@ -41,7 +43,7 @@ class BaslerCameraBackend(CameraBackend):
         self._camera.Open()
 
         # Default to full frame but keep the ROI adjustable.
-        if hasattr(self._camera, "Width") and hasattr(self._camera, "Width"):
+        if hasattr(self._camera, "Width"):
             self._camera.Width.SetValue(int(self._camera.Width.Max))
         if hasattr(self._camera, "Height"):
             self._camera.Height.SetValue(int(self._camera.Height.Max))
@@ -83,6 +85,15 @@ class BaslerCameraBackend(CameraBackend):
                 raise RuntimeError("Basler grab failed.")
             return result.Array
 
+    @staticmethod
+    def _normalize_bayer_image(image):
+        arr = np.asarray(image)
+        if arr.ndim == 3 and arr.shape[-1] == 1:
+            arr = arr[:, :, 0]
+        if arr.dtype != np.uint16:
+            arr = arr.astype(np.uint16, copy=False)
+        return arr
+
     def CaptureMeta(self):
         return {
             "ExposureTime": self.GetSS(),
@@ -90,20 +101,29 @@ class BaslerCameraBackend(CameraBackend):
             "ColourGains": self.GetAWB(),
             "FrameDuration": self.GetFD(),
             "ScalerCrop": self.GetScalerCrop(),
+            "BayerPattern": self._bayer_pattern,
+            "PixelFormat": self._pixel_format,
         }
 
     def CaptureFromStream(self, stream="raw"):
         img = self._retrieve_image()
         if img is None:
             raise RuntimeError("Basler camera returned no image data.")
-        return np.asarray(img)
+        stream_name = str(stream).lower()
+        if stream_name in ("raw", "bayer", "sensor"):
+            return self._normalize_bayer_image(img)
+        return self._normalize_bayer_image(img)
 
     def CaptureMetaAndImgFromStream(self, stream="raw"):
         return self.CaptureFromStream(stream=stream), self.CaptureMeta()
 
     def SetSS(self, ss:int, Lo=0.95, Hi=1.05):
         if hasattr(self._camera, "ExposureTime"):
-            self._camera.ExposureTime.SetValue(float(ss))
+            prop = self._camera.ExposureTime
+            min_value = getattr(prop, "Min", 0.0)
+            max_value = getattr(prop, "Max", float(ss))
+            clamped_value = min(float(max_value), max(float(min_value), float(ss)))
+            prop.SetValue(clamped_value)
         return 0
 
     def GetSS(self):
@@ -113,14 +133,22 @@ class BaslerCameraBackend(CameraBackend):
 
     def SetScalerCrop(self, ScalerCropWin=[0, 0, 4056, 3040]):
         x, y, w, h = [int(v) for v in ScalerCropWin]
+        sensor_w = int(getattr(getattr(self._camera, "Width", None), "Max", max(1, w)))
+        sensor_h = int(getattr(getattr(self._camera, "Height", None), "Max", max(1, h)))
+
+        x = max(0, min(x, max(0, sensor_w - 1)))
+        y = max(0, min(y, max(0, sensor_h - 1)))
+        w = max(1, min(w, max(1, sensor_w - x)))
+        h = max(1, min(h, max(1, sensor_h - y)))
+
         if hasattr(self._camera, "OffsetX"):
-            self._camera.OffsetX.SetValue(max(0, x))
+            self._camera.OffsetX.SetValue(x)
         if hasattr(self._camera, "OffsetY"):
-            self._camera.OffsetY.SetValue(max(0, y))
+            self._camera.OffsetY.SetValue(y)
         if hasattr(self._camera, "Width"):
-            self._camera.Width.SetValue(max(1, w))
+            self._camera.Width.SetValue(w)
         if hasattr(self._camera, "Height"):
-            self._camera.Height.SetValue(max(1, h))
+            self._camera.Height.SetValue(h)
         return 0
 
     def GetScalerCrop(self):
@@ -142,6 +170,7 @@ class BaslerCameraBackend(CameraBackend):
 
     def SetAWB(self, awb:tuple=(1.0, 1.0)):
         red_gain, blue_gain = tuple(awb)
+        self._awb = (float(red_gain), float(blue_gain))
         if hasattr(self._camera, "BalanceRatioSelector") and hasattr(self._camera, "BalanceRatio"):
             for selector, value in (("Red", red_gain), ("Blue", blue_gain)):
                 try:
@@ -158,34 +187,31 @@ class BaslerCameraBackend(CameraBackend):
                 red_gain = float(self._camera.BalanceRatio.GetValue())
                 self._camera.BalanceRatioSelector.SetValue("Blue")
                 blue_gain = float(self._camera.BalanceRatio.GetValue())
+                self._awb = (red_gain, blue_gain)
                 return (red_gain, blue_gain)
             except Exception:
                 pass
-        return (1.0, 1.0)
+        return getattr(self, "_awb", (1.0, 1.0))
+
+    def _acquisition_rate_property_name(self):
+        for prop_name in ("AcquisitionFrameRateAbs", "AcquisitionFrameRate"):
+            if hasattr(self._camera, prop_name):
+                return prop_name
+        return None
 
     def SetFD(self, fd:int=100000):
         # fd is treated as the sensor frame duration in microseconds for compatibility
         # with the existing server API.
-        if hasattr(self._camera, "AcquisitionFrameRateEnable"):
-            try:
-                self._camera.AcquisitionFrameRateEnable.SetValue(True)
-            except Exception:
-                pass
-        if hasattr(self._camera, "AcquisitionFrameRateAbs"):
-            try:
-                frame_rate = 1_000_000.0 / max(1.0, float(fd))
-                self._camera.AcquisitionFrameRateAbs.SetValue(frame_rate)
-            except Exception:
-                pass
+        if fd <= 0:
+            return 0
+        self.SetFR(1_000_000.0 / float(fd))
         return 0
 
     def GetFD(self):
-        if hasattr(self._camera, "ResultingFrameRate"):
-            try:
-                return 1_000_000.0 / float(self._camera.ResultingFrameRate.GetValue())
-            except Exception:
-                pass
-        return 100000.0
+        frame_rate = self.GetFR()
+        if frame_rate <= 0:
+            return 100000.0
+        return 1_000_000.0 / float(frame_rate)
 
     def SetFR(self, fr:float=10.0):
         if hasattr(self._camera, "AcquisitionFrameRateEnable"):
@@ -193,17 +219,26 @@ class BaslerCameraBackend(CameraBackend):
                 self._camera.AcquisitionFrameRateEnable.SetValue(True)
             except Exception:
                 pass
-        if hasattr(self._camera, "AcquisitionFrameRateAbs"):
+
+        rate_prop_name = self._acquisition_rate_property_name()
+        if rate_prop_name is not None:
             try:
-                self._camera.AcquisitionFrameRateAbs.SetValue(float(fr))
+                getattr(self._camera, rate_prop_name).SetValue(float(fr))
+            except Exception:
+                pass
+
+        if hasattr(self._camera, "ResultingFrameRate"):
+            try:
+                self._camera.ResultingFrameRate.SetValue(float(fr))
             except Exception:
                 pass
         return 0
 
     def GetFR(self):
-        if hasattr(self._camera, "ResultingFrameRate"):
-            try:
-                return float(self._camera.ResultingFrameRate.GetValue())
-            except Exception:
-                pass
+        for prop_name in ("ResultingFrameRate", "AcquisitionFrameRateAbs", "AcquisitionFrameRate"):
+            if hasattr(self._camera, prop_name):
+                try:
+                    return float(getattr(self._camera, prop_name).GetValue())
+                except Exception:
+                    pass
         return 10.0
